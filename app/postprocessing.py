@@ -16,10 +16,11 @@ from skimage.morphology import skeletonize
 # No red or green — all chosen to stand out from the warm red/brown retinal background
 COLOR_RIDGE = (255, 230, 0)       # Electric Yellow — Ridge demarcation line
 COLOR_OD = (255, 0, 200)          # Hot Magenta — Optic Disc
-COLOR_BV = (0, 212, 255)          # Neon Cyan — Blood Vessels (cool vs warm background)
+COLOR_BV = (0, 80, 220)           # Dark Blue — Blood Vessels / Optic Nerves
 COLOR_ZONE1 = (160, 0, 255)       # Vivid Purple — Zone I boundary ring
-COLOR_ZONE2 = (0, 120, 255)       # Deep Sky Blue — Zone II boundary ring
+COLOR_ZONE2 = (0, 160, 255)       # Sky Blue — Zone II boundary ring
 COLOR_OD_CENTER = (255, 255, 255) # White — OD center landmark (maximum contrast)
+
 
 def fundus_field(image_rgb):
     """
