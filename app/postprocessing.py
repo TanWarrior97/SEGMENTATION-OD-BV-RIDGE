@@ -12,13 +12,14 @@ import cv2
 import numpy as np
 from skimage.morphology import skeletonize
 
-# Default Color Palette (RGB)
-COLOR_RIDGE = (0, 229, 255)       # Vibrant Cyan for Ridge
-COLOR_OD = (255, 51, 51)          # Crimson Red for Optic Disc
-COLOR_BV = (0, 230, 118)          # Emerald Green for Blood Vessels
-COLOR_ZONE1 = (255, 171, 0)       # Amber Gold for Zone I
-COLOR_ZONE2 = (76, 175, 80)       # Light Green for Zone II
-COLOR_OD_CENTER = (255, 255, 0)   # Yellow landmark for OD center
+# Default Color Palette (RGB) — Bold, high-contrast against dark retinal fundus backgrounds
+# No red or green — all chosen to stand out from the warm red/brown retinal background
+COLOR_RIDGE = (255, 230, 0)       # Electric Yellow — Ridge demarcation line
+COLOR_OD = (255, 0, 200)          # Hot Magenta — Optic Disc
+COLOR_BV = (0, 212, 255)          # Neon Cyan — Blood Vessels (cool vs warm background)
+COLOR_ZONE1 = (160, 0, 255)       # Vivid Purple — Zone I boundary ring
+COLOR_ZONE2 = (0, 120, 255)       # Deep Sky Blue — Zone II boundary ring
+COLOR_OD_CENTER = (255, 255, 255) # White — OD center landmark (maximum contrast)
 
 def fundus_field(image_rgb):
     """
