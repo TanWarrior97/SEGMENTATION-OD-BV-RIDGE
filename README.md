@@ -92,8 +92,8 @@ Open your browser at: **`http://localhost:5000`**
 
 ### Web Features:
 - **Drag & Drop Upload**: Upload any infant retinal fundus image (`.png`, `.jpg`, `.jpeg`).
-- **Benchmark Catalog**: One-click evaluation of pre-indexed RetCam and Neo reference cases.
-- **Ground Truth Comparison**: Automatic signature matching to display side-by-side ophthalmologist annotations.
+- **Unified Tri-Modal Overlay**: Instant simultaneous visualization of Demarcation Ridge, Optic Disc, Blood Vessels, and ICROP Zones.
+- **Individual Anatomical Breakdown**: Dedicated segmentation cards with clinical area coverage %, vessel density %, and disc geometric metrics.
 - **Export Assets**: Download high-resolution PNG masks and colored overlays for each anatomical structure.
 
 ---
@@ -155,11 +155,11 @@ python -m unittest discover -s tests -p "test_*.py"
 ├── app/
 │   ├── __init__.py
 │   ├── cli.py                  # Production CLI interface
-│   ├── dataset_indexer.py      # Dataset signature indexer & GT matching
 │   ├── model_loader.py         # Multi-model loader (MAnet, UNet++)
 │   ├── postprocessing.py       # Camera rim filter, skeletonize, Zone geometry
 │   ├── predictor.py            # Unified ROPPredictor engine
-│   └── preprocessing.py        # Dual-resolution transforms (512px / 384px)
+│   ├── preprocessing.py        # Dual-resolution transforms (512px / 384px)
+│   └── web.py                  # Flask web service API
 ├── model/
 │   ├── model_metadata.json     # Model specs, thresholds, and performance metrics
 │   ├── best_model_RIDGE_manet.pth # Ridge weights (103 MB)

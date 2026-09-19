@@ -29,13 +29,6 @@ class TestWebEndpoints(unittest.TestCase):
         self.assertEqual(data["status"], "SUCCESS")
         self.assertIn("modalities", data["metadata"])
 
-    def test_benchmark_catalog_api(self):
-        resp = self.client.get("/api/benchmark_images?target=all")
-        self.assertEqual(resp.status_code, 200)
-        data = json.loads(resp.data)
-        self.assertEqual(data["status"], "SUCCESS")
-        self.assertIsInstance(data["catalog"], list)
-        self.assertGreater(len(data["catalog"]), 0)
 
     def test_predict_endpoint(self):
         dummy_path = os.path.join(os.path.dirname(__file__), "data", "dummy_retina.jpg")

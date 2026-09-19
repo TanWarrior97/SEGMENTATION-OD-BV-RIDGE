@@ -1,18 +1,12 @@
 /**
  * Client application logic for EPICS ROP Tri-Modal Diagnostic Platform.
- * Supports dynamic layer blending, real-time opacity manipulation,
- * benchmark catalog browsing, and side-by-side ground truth comparisons.
+ * Provides clean drag-and-drop inference and multi-structure visualization.
  */
 
 let currentData = null;
-let currentOriginalImg = null;
-let currentOverlays = {};
-let currentMasks = {};
 
 document.addEventListener("DOMContentLoaded", () => {
     initDropZone();
-    initBenchmarkCatalog();
-    initLayerControls();
 });
 
 // ============================================================================
@@ -64,7 +58,7 @@ async function handleFileUpload(file) {
     const formData = new FormData();
     formData.append("image", file);
 
-    showLoading("Analyzing Retinal Image with MAnet + UNet++ Models...");
+    showLoading("Analyzing Retinal Image (Ridge, Optic Disc, Blood Vessels, Zones)...");
 
     try {
         const resp = await fetch("/api/predict", {
@@ -79,54 +73,6 @@ async function handleFileUpload(file) {
         }
     } catch (err) {
         alert("Network or inference error: " + err.message);
-    } finally {
-        hideLoading();
-    }
-}
-
-// ============================================================================
-// Benchmark Catalog Browsing
-// ============================================================================
-
-async function initBenchmarkCatalog() {
-    try {
-        const resp = await fetch("/api/benchmark_images?target=all");
-        const data = await resp.json();
-        if (data.status === "SUCCESS" && data.catalog) {
-            renderBenchmarkChips(data.catalog);
-        }
-    } catch (e) {
-        console.warn("Could not load benchmark gallery:", e);
-    }
-}
-
-function renderBenchmarkChips(catalog) {
-    const container = document.getElementById("galleryChips");
-    container.innerHTML = "";
-
-    // Display first 18 samples across Ridge, OD, and BV
-    catalog.slice(0, 18).forEach(item => {
-        const btn = document.createElement("button");
-        btn.className = "chip-btn";
-        btn.innerText = `${item.camera} #${item.filename.split('.')[0]}`;
-        btn.title = item.display_name;
-        btn.addEventListener("click", () => loadBenchmarkCase(item.id, item.target));
-        container.appendChild(btn);
-    });
-}
-
-async function loadBenchmarkCase(id, target) {
-    showLoading("Fetching Benchmark Retinal Image & Ground Truth...");
-    try {
-        const resp = await fetch(`/api/load_benchmark?id=${id}&target=${target}`);
-        const data = await resp.json();
-        if (data.status === "SUCCESS") {
-            renderResults(data);
-        } else {
-            alert("Error loading benchmark: " + data.error);
-        }
-    } catch (e) {
-        alert("Failed to load benchmark: " + e.message);
     } finally {
         hideLoading();
     }
@@ -153,15 +99,6 @@ function renderResults(data) {
     document.getElementById("metricTime").innerText = `${m.inference_time_sec}s`;
     document.getElementById("metricDevice").innerText = m.device;
 
-    // Benchmark match notice if any
-    const matchNotice = document.getElementById("benchmarkMatchNotice");
-    if (data.matched_benchmark || data.benchmark_name) {
-        matchNotice.style.display = "block";
-        document.getElementById("matchedName").innerText = data.matched_benchmark || data.benchmark_name;
-    } else {
-        matchNotice.style.display = "none";
-    }
-
     // 3. Populate Demarcation Ridge Card
     const ridgeCard = document.getElementById("ridgeStatus");
     const ridgeImg = document.getElementById("ridgeCardImg");
@@ -177,7 +114,6 @@ function renderResults(data) {
     document.getElementById("ridgeCoverage").innerText = `${m.ridge.coverage_percent}%`;
     document.getElementById("ridgeConf").innerText = `${(m.ridge.mean_confidence * 100).toFixed(1)}%`;
 
-    // Download links
     setupDownloadBtn("downloadRidgeOverlay", data.ridge_overlay_base64, "ridge_overlay.png");
     setupDownloadBtn("downloadRidgeMask", data.ridge_mask_base64, "ridge_mask.png");
 
@@ -228,20 +164,7 @@ function renderResults(data) {
         document.getElementById("zone2Radius").innerText = `${m.zones.zone2_radius} px`;
     }
 
-    // 7. Ground Truth Panel if available
-    const gtPanel = document.getElementById("gtPanel");
-    if (data.has_gt && data.gt_base64) {
-        gtPanel.style.display = "block";
-        document.getElementById("gtImage").src = `data:image/png;base64,${data.gt_base64}`;
-        const aiVal = document.getElementById("aiValidationImage");
-        if (aiVal) {
-            aiVal.src = `data:image/png;base64,${data.combined_overlay_base64}`;
-        }
-    } else {
-        gtPanel.style.display = "none";
-    }
-
-    // Scroll to results
+    // Smooth scroll down to analysis results
     document.getElementById("resultsSection").scrollIntoView({ behavior: "smooth" });
 }
 
@@ -257,75 +180,4 @@ function setupDownloadBtn(elementId, base64Data, filename) {
         a.click();
         document.body.removeChild(a);
     };
-}
-
-// ============================================================================
-// Interactive Layer Visibility Toggles
-// ============================================================================
-
-function initLayerControls() {
-    const ridgeToggle = document.getElementById("toggleRidge");
-    const odToggle = document.getElementById("toggleOd");
-    const bvToggle = document.getElementById("toggleBv");
-    const zonesToggle = document.getElementById("toggleZones");
-    const opacitySlider = document.getElementById("opacitySlider");
-    const opacityVal = document.getElementById("opacityVal");
-
-    [ridgeToggle, odToggle, bvToggle, zonesToggle].forEach(toggle => {
-        if (toggle) {
-            toggle.addEventListener("change", updateMasterView);
-        }
-    });
-
-    if (opacitySlider) {
-        opacitySlider.addEventListener("input", (e) => {
-            const val = e.target.value;
-            opacityVal.innerText = `${val}%`;
-            const combinedImg = document.getElementById("combinedImage");
-            if (combinedImg) {
-                combinedImg.style.opacity = val / 100;
-            }
-        });
-    }
-}
-
-function updateMasterView() {
-    if (!currentData) return;
-
-    const showRidge = document.getElementById("toggleRidge").checked;
-    const showOd = document.getElementById("toggleOd").checked;
-    const showBv = document.getElementById("toggleBv").checked;
-    const showZones = document.getElementById("toggleZones").checked;
-
-    // If all are checked, show full combined overlay
-    if (showRidge && showOd && showBv && showZones) {
-        document.getElementById("combinedImage").src = `data:image/png;base64,${currentData.combined_overlay_base64}`;
-        return;
-    }
-
-    // If only one is selected, display that modality's individual overlay
-    if (showRidge && !showOd && !showBv && !showZones) {
-        document.getElementById("combinedImage").src = `data:image/png;base64,${currentData.ridge_overlay_base64}`;
-        return;
-    }
-    if (!showRidge && showOd && !showBv && !showZones) {
-        document.getElementById("combinedImage").src = `data:image/png;base64,${currentData.od_overlay_base64}`;
-        return;
-    }
-    if (!showRidge && !showOd && showBv && !showZones) {
-        document.getElementById("combinedImage").src = `data:image/png;base64,${currentData.bv_overlay_base64}`;
-        return;
-    }
-    if (!showRidge && !showOd && !showBv && showZones) {
-        document.getElementById("combinedImage").src = `data:image/png;base64,${currentData.zones_overlay_base64}`;
-        return;
-    }
-
-    if (!showRidge && !showOd && !showBv && !showZones) {
-        document.getElementById("combinedImage").src = `data:image/png;base64,${currentData.original_base64}`;
-        return;
-    }
-
-    // Default fallback
-    document.getElementById("combinedImage").src = `data:image/png;base64,${currentData.combined_overlay_base64}`;
 }
