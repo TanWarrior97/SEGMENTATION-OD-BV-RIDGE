@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <!-- Product Definition -->
+  <Product Id="*"
+           Name="EPICS ROP Tri-Modal Diagnostic Suite"
+           Language="1033"
+           Version="2.1.0"
+           Manufacturer="EPICS ROP Project"
+           UpgradeCode="4D6E85C2-7B4F-4C92-94C3-DE42FA58253E">
+
+    <Package InstallerVersion="500"
+             Compressed="yes"
+             InstallScope="perMachine"
+             Description="Standalone Installer for ROP Tri-Modal Retinal Segmentation (Ridge, OD, BV)"
+             Comments="Deep Learning ROP Diagnostic Framework" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Directory Structure -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="ManufacturerFolder" Name="EPICS ROP">
+          <Directory Id="INSTALLFOLDER" Name="ROP Tri-Modal Segmenter">
+            <Directory Id="ModelFolder" Name="model" />
+          </Directory>
+        </Directory>
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="EPICS ROP" />
+      </Directory>
+      <Directory Id="DesktopFolder" Name="Desktop" />
+    </Directory>
+
+    <!-- Main Components -->
+    <ComponentGroup Id="ProductComponents">
+      <!-- Main Application Executable -->
+      <Component Id="MainExecutable" Guid="A742F19E-B7C4-4A3C-904E-2E7E4957D7A1" Directory="INSTALLFOLDER" Win64="yes">
+        <File Id="ROPSegmenterEXE" Source="dist\ROPTriModalSegmenter\ROPTriModalSegmenter.exe" KeyPath="yes">
+          <Shortcut Id="ApplicationStartMenuShortcut"
+                    Directory="ApplicationProgramsFolder"
+                    Name="ROP Tri-Modal Segmenter"
+                    Description="EPICS ROP Tri-Modal Diagnostic Segmentation"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Advertise="yes" />
+          <Shortcut Id="ApplicationDesktopShortcut"
+                    Directory="DesktopFolder"
+                    Name="ROP Tri-Modal Segmenter"
+                    Description="EPICS ROP Tri-Modal Diagnostic Segmentation"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Advertise="yes" />
+        </File>
+        <!-- Environment PATH registration for CLI access -->
+        <Environment Id="PATH" Name="PATH" Value="[INSTALLFOLDER]" Permanent="no" Part="last" Action="set" System="yes" />
+      </Component>
+
+      <!-- Ridge Model Weights -->
+      <Component Id="ModelWeightsRidge" Guid="C19F58D3-8E4B-4E3F-90BC-1E7C4A57D8B2" Directory="ModelFolder" Win64="yes">
+        <File Id="RidgeModelWeights" Source="dist\ROPTriModalSegmenter\model\best_model_RIDGE_manet.pth" KeyPath="yes" />
+      </Component>
+
+      <!-- OD Model Weights -->
+      <Component Id="ModelWeightsOD" Guid="E28B6A14-41A5-48F3-B756-787A5B79F8C1" Directory="ModelFolder" Win64="yes">
+        <File Id="OdModelWeights" Source="dist\ROPTriModalSegmenter\model\best_model_OD.pth" KeyPath="yes" />
+      </Component>
+
+      <!-- BV Model Weights -->
+      <Component Id="ModelWeightsBV" Guid="F39C7B25-52B6-4904-C867-898B6C80A9D2" Directory="ModelFolder" Win64="yes">
+        <File Id="BvModelWeights" Source="dist\ROPTriModalSegmenter\model\optimized_best_model_BV.pth" KeyPath="yes" />
+      </Component>
+
+      <!-- Model Metadata -->
+      <Component Id="ModelMeta" Guid="D2A069E4-9F5C-4F40-A1CD-2F8D5B68E9C3" Directory="ModelFolder" Win64="yes">
+        <File Id="ModelMetaJson" Source="dist\ROPTriModalSegmenter\model\model_metadata.json" KeyPath="yes" />
+      </Component>
+
+      <!-- Version Document -->
+      <Component Id="VersionDoc" Guid="E3B170F5-A06D-4051-B2DE-309E6C79F0D4" Directory="INSTALLFOLDER" Win64="yes">
+        <File Id="VersionFile" Source="dist\ROPTriModalSegmenter\VERSION.txt" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Start Menu Folder Cleanup on Uninstall -->
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="ApplicationShortcutCleanup" Guid="F4C28106-B17E-4162-C3EF-41AF7D8A01E5">
+        <RemoveFolder Id="CleanUpShortCut" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\EPICS_ROP\ROPTriModalSegmenter" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- Features -->
+    <Feature Id="ProductFeature" Title="ROP Tri-Modal Segmenter" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentRef Id="ApplicationShortcutCleanup" />
+    </Feature>
+
+    <!-- Basic UI Dialogs -->
+    <UIRef Id="WixUI_InstallDir" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+  </Product>
+</Wix>

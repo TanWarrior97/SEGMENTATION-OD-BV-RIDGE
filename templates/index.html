@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EPICS ROP Tri-Modal Retinal Diagnostic Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <!-- Application Navigation & Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <div class="brand-group">
+                <div class="brand-icon">🔬</div>
+                <div>
+                    <h1 class="brand-title">EPICS ROP Tri-Modal Diagnostic Suite</h1>
+                    <p class="brand-subtitle">Demarcation Ridge • Optic Disc • Blood Vessels • ROP Zone Mapping</p>
+                </div>
+            </div>
+            <div class="header-badges">
+                <span class="badge badge-tri">MAnet + UNet++ EfficientNet-B4</span>
+                <span class="badge">Dual-Res: 512px / 384px</span>
+                <span class="badge badge-cuda" id="deviceBadge">CUDA Accelerated</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container">
+
+        <!-- Input & Benchmark Section -->
+        <section class="glass-panel">
+            <div class="control-grid">
+                <!-- Image Upload Dropzone -->
+                <div class="drop-zone" id="dropZone">
+                    <div class="drop-icon">📤</div>
+                    <div>
+                        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.3rem;">Upload Retinal Fundus Scan</h3>
+                        <p style="color: var(--text-secondary); font-size: 0.85rem;">Drag and drop retinal image here, or click to browse</p>
+                    </div>
+                    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                    <button type="button" class="btn-upload">Select Fundus Image</button>
+                </div>
+
+                <!-- Benchmark Catalog Picker -->
+                <div class="benchmark-selector">
+                    <div>
+                        <h3 class="section-title"><span>📚</span> Reference Benchmark Gallery</h3>
+                        <p style="color: var(--text-secondary); font-size: 0.8rem; margin: 0.3rem 0 0.8rem 0;">
+                            Select verified clinical cases from RetCam & Neo databases for instant testing:
+                        </p>
+                        <div class="gallery-chips" id="galleryChips">
+                            <!-- Populated dynamically via app.js -->
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">Loading benchmark cases...</span>
+                        </div>
+                    </div>
+                    <div id="benchmarkMatchNotice" style="display: none; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: var(--radius-sm); padding: 0.6rem 0.8rem; font-size: 0.8rem;">
+                        <strong>Matched Dataset Case:</strong> <span id="matchedName" style="color: #93c5fd;"></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Section (Populated upon analysis) -->
+        <section class="master-viewer glass-panel" id="resultsSection" style="display: none;">
+            
+            <!-- Analysis Summary Bar -->
+            <div class="viewer-header">
+                <div>
+                    <h2 style="font-size: 1.25rem; font-weight: 700;">Unified Multi-Structure Analysis</h2>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem;">
+                        Dimensions: <span id="metricDims" style="color: #fff; font-weight: 600;"></span> • 
+                        Inference: <span id="metricTime" style="color: #fff; font-weight: 600;"></span> • 
+                        Device: <span id="metricDevice" style="color: var(--color-bv); font-weight: 600;"></span>
+                    </p>
+                </div>
+
+                <!-- Real-time Layer Visibility Toggles -->
+                <div class="layer-controls">
+                    <label class="layer-toggle ridge-toggle">
+                        <input type="checkbox" id="toggleRidge" checked> Ridge
+                    </label>
+                    <label class="layer-toggle od-toggle">
+                        <input type="checkbox" id="toggleOd" checked> Optic Disc
+                    </label>
+                    <label class="layer-toggle bv-toggle">
+                        <input type="checkbox" id="toggleBv" checked> Vessels
+                    </label>
+                    <label class="layer-toggle zones-toggle">
+                        <input type="checkbox" id="toggleZones" checked> ROP Zones
+                    </label>
+                    <div class="slider-group">
+                        <span>Opacity:</span>
+                        <input type="range" id="opacitySlider" min="10" max="100" value="100" class="slider-custom">
+                        <span id="opacityVal">100%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Primary Master View: Original vs Combined Overlay -->
+            <div class="display-grid">
+                <div class="image-frame">
+                    <span class="overlay-tag">Original Fundus</span>
+                    <img id="originalImage" alt="Original Retinal Scan">
+                </div>
+                <div class="image-frame">
+                    <span class="overlay-tag" style="background: rgba(37, 99, 235, 0.85);">Combined Tri-Modal Overlay</span>
+                    <img id="combinedImage" alt="Combined Segmentation Overlay">
+                </div>
+            </div>
+
+            <!-- Individual Modality Results Grid -->
+            <h3 class="section-title" style="margin-top: 1rem;"><span>🎯</span> Individual Anatomical Segmentations</h3>
+            <div class="modality-grid">
+
+                <!-- 1. Demarcation Ridge Card -->
+                <div class="modality-card">
+                    <div class="card-header">
+                        <span class="card-title ridge"><span>🔵</span> Demarcation Ridge</span>
+                        <span class="card-status" id="ridgeStatus">PENDING</span>
+                    </div>
+                    <div class="card-preview">
+                        <img id="ridgeCardImg" alt="Ridge Overlay">
+                    </div>
+                    <div class="card-metrics">
+                        <div class="metric-row">
+                            <span class="metric-label">Model:</span>
+                            <span class="metric-value">MAnet EfficientNet-B4 (512px)</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Ridge Pixels:</span>
+                            <span class="metric-value" id="ridgePixels">-</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Area Coverage:</span>
+                            <span class="metric-value" id="ridgeCoverage">-</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Confidence:</span>
+                            <span class="metric-value" id="ridgeConf">-</span>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-card" id="downloadRidgeOverlay">Download Overlay</button>
+                        <button class="btn-card" id="downloadRidgeMask">Download Mask</button>
+                    </div>
+                </div>
+
+                <!-- 2. Optic Disc Card -->
+                <div class="modality-card">
+                    <div class="card-header">
+                        <span class="card-title od"><span>🔴</span> Optic Disc (OD)</span>
+                        <span class="card-status" id="odStatus">PENDING</span>
+                    </div>
+                    <div class="card-preview">
+                        <img id="odCardImg" alt="Optic Disc Overlay">
+                    </div>
+                    <div class="card-metrics">
+                        <div class="metric-row">
+                            <span class="metric-label">Model:</span>
+                            <span class="metric-value">UNet++ EfficientNet-B4 (384px)</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">OD Pixels:</span>
+                            <span class="metric-value" id="odPixels">-</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Geometric Center:</span>
+                            <span class="metric-value" id="odCenter">-</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">OD Diameter:</span>
+                            <span class="metric-value" id="odDiameter">-</span>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-card" id="downloadOdOverlay">Download Overlay</button>
+                        <button class="btn-card" id="downloadOdMask">Download Mask</button>
+                    </div>
+                </div>
+
+                <!-- 3. Blood Vessels Card -->
+                <div class="modality-card">
+                    <div class="card-header">
+                        <span class="card-title bv"><span>🟢</span> Blood Vessels (BV)</span>
+                        <span class="card-status" id="bvStatus">PENDING</span>
+                    </div>
+                    <div class="card-preview">
+                        <img id="bvCardImg" alt="Blood Vessels Overlay">
+                    </div>
+                    <div class="card-metrics">
+                        <div class="metric-row">
+                            <span class="metric-label">Model:</span>
+                            <span class="metric-value">UNet++ EfficientNet-B4 (384px)</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Vessel Pixels:</span>
+                            <span class="metric-value" id="bvPixels">-</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Vascular Density:</span>
+                            <span class="metric-value" id="bvDensity">-</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Processing:</span>
+                            <span class="metric-value">Skeletonized + 3px Dilated</span>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-card" id="downloadBvOverlay">Download Overlay</button>
+                        <button class="btn-card" id="downloadBvMask">Download Mask</button>
+                    </div>
+                </div>
+
+                <!-- 4. ROP Zones Card -->
+                <div class="modality-card">
+                    <div class="card-header">
+                        <span class="card-title zones"><span>🗺️</span> ROP Zone Analysis</span>
+                        <span class="card-status detected">ICROP Standard</span>
+                    </div>
+                    <div class="card-preview">
+                        <img id="zonesCardImg" alt="ROP Zones Overlay">
+                    </div>
+                    <div class="card-metrics">
+                        <div class="metric-row">
+                            <span class="metric-label">Macula Distance:</span>
+                            <span class="metric-value" id="zoneMaculaDist">-</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Zone I Radius:</span>
+                            <span class="metric-value" id="zone1Radius">-</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Zone II Radius:</span>
+                            <span class="metric-value" id="zone2Radius">-</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Outer Region:</span>
+                            <span class="metric-value">Zone III (Peripheral)</span>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; width: 100%;">
+                            Concentric clinical circles centered on Optic Disc
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Ground Truth Comparison Panel (if reference sample loaded) -->
+            <div id="gtPanel" style="display: none; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                <h3 class="section-title"><span>🔍</span> Clinical Ground-Truth Validation Comparison</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+                    Side-by-side comparison with expert ophthalmologist ground truth segmentation:
+                </p>
+                <div class="display-grid">
+                    <div class="image-frame">
+                        <span class="overlay-tag" style="background: rgba(16, 185, 129, 0.85);">Ground Truth Mask (Database)</span>
+                        <img id="gtImage" alt="Ground Truth Mask">
+                    </div>
+                    <div class="image-frame">
+                        <span class="overlay-tag" style="background: rgba(59, 130, 246, 0.85);">AI Model Segmentation</span>
+                        <img id="aiValidationImage" alt="AI Validation Segmentation">
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Loading Spinner Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loadingText">Running Tri-Modal Deep Learning Segmentation...</div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

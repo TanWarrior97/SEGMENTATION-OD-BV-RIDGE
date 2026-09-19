@@ -1,0 +1,71 @@
+{
+  "project": "EPICS ROP Tri-Modal Retinal Segmentation & Diagnostic Suite",
+  "version": "2.1.0",
+  "date": "2026-09-19",
+  "modalities": {
+    "ridge": {
+      "target_name": "ROP Demarcation Ridge",
+      "architecture": "MAnet",
+      "encoder": "efficientnet-b4",
+      "weights_file": "best_model_RIDGE_manet.pth",
+      "input_size": 512,
+      "decision_threshold": 0.69,
+      "color_rgb": [235, 30, 30],
+      "color_hex": "#EB1E1E",
+      "description": "Segments the physical ridge separating vascularized from avascular retina with camera rim rejection.",
+      "metrics": {
+        "dice_score": 0.7474,
+        "iou_score": 0.6015,
+        "precision": 0.7712,
+        "recall": 0.7314
+      }
+    },
+    "optic_disc": {
+      "target_name": "Optic Disc (OD)",
+      "architecture": "UNet++",
+      "encoder": "efficientnet-b4",
+      "weights_file": "best_model_OD.pth",
+      "input_size": 384,
+      "decision_threshold": 0.50,
+      "color_rgb": [255, 51, 51],
+      "color_hex": "#FF3333",
+      "description": "Isolates the optic disc landmark, detects geometric center and diameter for Zone I/II circle calculation.",
+      "metrics": {
+        "dice_score": 0.9230,
+        "iou_score": 0.8570,
+        "precision": 0.9350,
+        "recall": 0.9120
+      }
+    },
+    "blood_vessels": {
+      "target_name": "Retinal Blood Vessels (BV)",
+      "architecture": "UNet++",
+      "encoder": "efficientnet-b4",
+      "weights_file": "optimized_best_model_BV.pth",
+      "input_size": 384,
+      "decision_threshold": 0.72,
+      "color_rgb": [0, 230, 118],
+      "color_hex": "#00E676",
+      "description": "Extracts the complete vascular network with centerline skeletonization and uniform 3px dilation.",
+      "metrics": {
+        "dice_score": 0.8410,
+        "iou_score": 0.7260,
+        "precision": 0.8650,
+        "recall": 0.8200
+      }
+    },
+    "zones": {
+      "target_name": "ROP Zone Mapping (ICROP Guidelines)",
+      "methodology": "Geometric concentric circles centered at Optic Disc",
+      "zone_1_multiplier": 2.0,
+      "zone_2_multiplier": 2.5,
+      "neo_macula_od_ratio": 2.75,
+      "retcam_macula_od_ratio": 3.0,
+      "colors": {
+        "zone_1": [255, 51, 51],
+        "zone_2": [0, 230, 118],
+        "zone_3": [59, 130, 246]
+      }
+    }
+  }
+}
